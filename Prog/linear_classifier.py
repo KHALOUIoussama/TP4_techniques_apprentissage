@@ -100,7 +100,6 @@ class LinearClassifier(object):
     def global_accuracy_and_cross_entropy_loss(self, X, y, reg=0.0):
         """
         Compute average accuracy and cross_entropy for a series of N data points.
-        Naive implementation (with loop)
         Inputs:
         - X: A numpy array of shape (D, N) containing many samples.
         - y: A numpy array of shape (N) labels as an integer
@@ -109,18 +108,27 @@ class LinearClassifier(object):
         - average accuracy as single float
         - average loss as single float
         """
-        accu = 0
-        loss = 0
-        #############################################################################
-        # TODO: Compute the softmax loss & accuracy for a series of samples X,y .   #
-        #############################################################################
+        accu = 0.0
+        loss = 0.0
+        num_samples = X.shape[0]
 
-        #############################################################################
-        #                          END OF YOUR CODE                                 #
-        #############################################################################
+        for i in range(num_samples):
+            x_sample = X[i]
+            if self.bias:  # Check if the bias term should be used
+                x_sample = augment(x_sample)
+            y_pred = self.predict(x_sample)
+            loss_i, _ = self.cross_entropy_loss(x_sample, y[i], reg)
+            accu += int(y_pred == y[i])
+            loss += loss_i
+
+        # Calculate the average accuracy and loss
+        accu /= num_samples
+        loss /= num_samples
+
         return accu, loss
 
-    def cross_entropy_loss(self, x, y, reg=0.0):
+
+    def  cross_entropy_loss(self, x, y, reg=0.0):
         """
         Cross-entropy loss function for one sample pair (X,y) (with softmax)
         C.f. Eq.(4.104 to 4.109) of Bishop book.
@@ -135,10 +143,11 @@ class LinearClassifier(object):
         - loss as single float
         - gradient with respect to weights W; an array of same shape as W
         """
+          
         # Initialize the loss and gradient to zero.
         loss = 0.0
         dW = np.zeros_like(self.W)
-
+        
         #############################################################################
         # TODO: Compute the softmax loss and its gradient.                          #
         # Store the loss in loss and the gradient in dW.                            #
@@ -150,6 +159,27 @@ class LinearClassifier(object):
         # class score from all scores of a sample.                                  #
         #############################################################################
 
+        
+        # Compute the class scores for a sample x
+        scores = x.dot(self.W)
+        
+        # Numerical stability fix: subtract the max score from all scores
+        shift_scores = scores - np.max(scores)
+        
+        # Compute the softmax probabilities
+        softmax_probs = np.exp(shift_scores) / np.sum(np.exp(shift_scores))
+        
+        # Compute the loss: -log of the probability of the correct class
+        loss = -np.log(softmax_probs[y])
+        
+        # Regularization term: 0.5 * reg * sum(W^2)
+        loss += 0.5 * reg * np.sum(self.W * self.W) 
+
+         # Gradient calculation
+        softmax_probs[y] -= 1  # subtract 1 from the probability of the correct class
+        dW = x[:, np.newaxis] * softmax_probs[np.newaxis, :]  # outer product
+        dW += reg * self.W  # add regularization gradient
+        
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
