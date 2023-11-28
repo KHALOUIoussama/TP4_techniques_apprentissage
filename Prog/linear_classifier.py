@@ -91,10 +91,16 @@ class LinearClassifier(object):
         #############################################################################
         # TODO: Return the best class label.                                        #
         #############################################################################
+        # Compute the class scores for the input data X
+        scores = np.dot(X, self.W)
 
+        # Use np.argmax to get the index of the highest score
+        # This index corresponds to the predicted class label
+        class_label = np.argmax(scores, axis=1)
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
+
         return class_label
 
     def global_accuracy_and_cross_entropy_loss(self, X, y, reg=0.0):
