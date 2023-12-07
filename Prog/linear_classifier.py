@@ -87,12 +87,17 @@ class LinearClassifier(object):
 
          Returns a class label for each sample (a number between 0 and num_classes-1)
         """
+        
+        if (np.shape(X)[1] < np.shape(self.W)[0]) & self.bias:
+            X = augment(X)
+        
         class_label = np.zeros(X.shape[0])
         #############################################################################
         # TODO: Return the best class label.                                        #
         #############################################################################
         # Compute the class scores for the input data X
-        scores = np.dot(X, self.W)
+        scores = np.exp(np.dot(X, self.W))
+        scores /= np.sum(scores, axis=1, keepdims=True)
 
         # Use np.argmax to get the index of the highest score
         # This index corresponds to the predicted class label
@@ -116,21 +121,29 @@ class LinearClassifier(object):
         """
         accu = 0.0
         loss = 0.0
+        
+        
+        #############################################################################
+        # TODO: Compute the softmax loss & accuracy for a series of samples X,y .   #
+        #############################################################################
+        if self.bias & (np.shape(X)[1] < np.shape(self.W)[0]):  # Check if the bias term should be used
+                X = augment(X)
+        
         num_samples = X.shape[0]
 
         for i in range(num_samples):
             x_sample = X[i]
-            if self.bias:  # Check if the bias term should be used
-                x_sample = augment(x_sample)
-            y_pred = self.predict(x_sample)
-            loss_i, _ = self.cross_entropy_loss(x_sample, y[i], reg)
-            accu += int(y_pred == y[i])
+            y_sample = y[i]
+            loss_i, _ = self.cross_entropy_loss(x_sample, y_sample, reg)
             loss += loss_i
-
+        
         # Calculate the average accuracy and loss
-        accu /= num_samples
-        loss /= num_samples
+        accu = (self.predict(X) == y).mean()
+        loss /= y.shape[0]
 
+        #############################################################################
+        #                          END OF YOUR CODE                                 #
+        #############################################################################
         return accu, loss
 
 

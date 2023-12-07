@@ -3,7 +3,7 @@ import sklearn.svm
 import matplotlib.pyplot as plt
 
 def test_sklearn_svm(X_train, y_train, X_test, y_test):
-    model = sklearn.svm.LinearSVC()
+    model = sklearn.svm.LinearSVC(dual=False)
     model.fit(X_train, y_train)
 
     pred = model.predict(X_test)
