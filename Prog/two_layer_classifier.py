@@ -88,7 +88,12 @@ class TwoLayerClassifier(object):
             #############################################################################
             # TODO: return the most probable class label for one sample.                #
             #############################################################################
-            return 0
+            
+            s = self.net.forward(x)
+            s = np.exp(s)
+            s = s/np.sum(s)
+            return np.argmax(s)
+
             #############################################################################
             #                          END OF YOUR CODE                                 #
             #############################################################################
@@ -97,7 +102,12 @@ class TwoLayerClassifier(object):
             #############################################################################
             # TODO: return the most probable class label for many samples               #
             #############################################################################
-            return np.zeros(x.shape[0])
+
+            s = self.net.forward(x)
+            s = np.exp(s)
+            s = s/np.sum(s,axis=1)[:, np.newaxis]
+            return np.argmax(s,axis=1)
+        
             #############################################################################
             #                          END OF YOUR CODE                                 #
             #############################################################################
@@ -123,6 +133,14 @@ class TwoLayerClassifier(object):
         # TODO: Compute the softmax loss & accuracy for a series of samples X,y .   #
         #############################################################################
 
+        scores = [self.net.forward(x[i]) for i in range(len(x))]
+        for i in range(len(x)):
+            loss += self.net.cross_entropy_loss(scores[i], y[i])[0]
+        loss /= len(x)
+
+        y_pred = self.predict(x)
+        accu = (y_pred == y).mean()
+
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
@@ -143,7 +161,10 @@ class TwoLayerClassifier(object):
         #############################################################################
         # TODO: update w with momentum                                              #
         #############################################################################
-        v=0 # remove this line
+
+        v = mu*v_prev - lr*dw
+        w += v
+
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
@@ -217,6 +238,21 @@ class TwoLayerNet(object):
         # 4- Compute gradient with respect to the score => eq.(4.109) with phi_n=1  #
         #############################################################################
 
+        score = np.exp(scores)
+        score = score/np.sum(score)
+
+        # One hot vector
+        t = np.zeros((y.size, self.num_classes))
+        t[np.arange(y.size),y] = 1
+        t = t[0]
+
+        # Loss
+        loss = -np.sum(t*np.log(score))
+        for param in self.parameters:
+            loss += np.sum(self.l2_reg * (np.linalg.norm(param))**2)
+        dloss_dscores = score - t
+
+
         #############################################################################
         #                          END OF YOUR CODE                                 #
         #############################################################################
@@ -264,7 +300,13 @@ class DenseLayer(object):
         # TODO: Compute forward pass.  Do not forget to add 1 to x in case of bias  #
         # C.f. function augment(x)                                                  #
         #############################################################################
-        f = self.W[1] ## REMOVE THIS LINE
+        
+        if self.activation == 'sigmoid':
+            f = sigmoid(x.dot(self.W))
+        elif self.activation == 'relu':
+            f = np.maximum(0, x.dot(self.W))
+        else:
+            f = x.dot(self.W)
 
         #############################################################################
         #                          END OF YOUR CODE                                 #
